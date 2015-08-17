@@ -62,6 +62,7 @@ private:
   virtual void endJob() override;
 
   edm::EDGetTokenT<edm::View<pat::Muon> >     muonToken_;
+  edm::EDGetTokenT<edm::View<pat::Electron> > elecToken_;
   edm::EDGetTokenT<edm::View<pat::Jet> >      jetToken_;
   edm::EDGetTokenT<edm::View<pat::MET> >      metToken_;
   edm::EDGetTokenT<reco::VertexCollection >   vtxToken_;
@@ -95,6 +96,7 @@ private:
 ZprimeAnalyser::ZprimeAnalyser(const edm::ParameterSet& iConfig)
 {
   muonToken_ = consumes<edm::View<pat::Muon> >(iConfig.getParameter<edm::InputTag>("muons"));
+  elecToken_ = consumes<edm::View<pat::Electron> >(iConfig.getParameter<edm::InputTag>("elecs"));
   jetToken_  = consumes<edm::View<pat::Jet> >(iConfig.getParameter<edm::InputTag>("jets"));
   metToken_  = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("mets"));     
   vtxToken_  = consumes<reco::VertexCollection >(iConfig.getParameter<edm::InputTag>("vertices"));
@@ -154,6 +156,9 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   edm::Handle<edm::View<pat::Muon> > muons;
   iEvent.getByToken(muonToken_, muons);
+
+  edm::Handle<edm::View<pat::Electron> > elecs;
+  iEvent.getByToken(elecToken_, elecs);
 
   edm::Handle<edm::View<pat::Jet> > jets;
   iEvent.getByToken(jetToken_, jets);
