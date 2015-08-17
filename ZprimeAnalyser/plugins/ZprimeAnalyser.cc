@@ -254,7 +254,7 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     if (selectedmuons[0].charge() * selectedmuons[1].charge() < 0){
       TLorentzVector mu1, mu2, reco_diMu;
       mu1.SetPtEtaPhiM(selectedmuons[0].pt(), selectedmuons[0].eta(), selectedmuons[0].phi(), 0.105658);
-      mu2.SetPtEtaPhiM(selectedmuons[0].pt(), selectedmuons[1].eta(), selectedmuons[1].phi(), 0.105658);
+      mu2.SetPtEtaPhiM(selectedmuons[1].pt(), selectedmuons[1].eta(), selectedmuons[1].phi(), 0.105658);
       reco_diMu = mu1 + mu2;
       b_reco_diMu_pt  = reco_diMu.Pt();
       b_reco_diMu_m   = reco_diMu.M();
