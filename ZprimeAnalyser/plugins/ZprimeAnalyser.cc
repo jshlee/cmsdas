@@ -69,14 +69,15 @@ private:
   edm::EDGetTokenT<reco::GenParticleCollection> mcLabel_;
 
   TTree * ttree_;
-  int b_njet, b_step, b_channel;
+  int b_nmuon, b_njet, b_step, b_channel;
   float b_MET;
   float b_lep1_pt, b_lep1_eta, b_lep1_phi;
   float b_lep2_pt, b_lep2_eta, b_lep2_phi;
-  float b_ll_pt, b_ll_eta, b_ll_phi, b_ll_m;
+  float b_reco_diMu_pt, b_reco_diMu_eta, b_reco_diMu_phi, b_reco_diMu_m;
+  float b_gen_diMu_pt, b_gen_diMu_eta, b_gen_diMu_phi, b_gen_diMu_m;
 
   vector<int> *b_nSiTrackerLayers, *b_nPixelHits, *b_nMuonHits, *b_nMatches;
-  vector<float> *b_relPtError, *b_dxy, *b_relTrkIso;
+  vector<float> *b_relPtError, *b_dxy, *b_relTrkIso, *b_ptBestTrack;
   bool b_isMedium, b_isTight;
   
   bool runOnMC_;
@@ -111,8 +112,21 @@ ZprimeAnalyser::ZprimeAnalyser(const edm::ParameterSet& iConfig)
   ttree_->Branch("relPtError", &b_relPtError);
   ttree_->Branch("dxy", &b_dxy);
   ttree_->Branch("relTrkIso", &b_relTrkIso);
-  
+  ttree_->Branch("ptBestTrack", &b_ptBestTrack);
+
+  ttree_->Branch("nmuon", &b_nmuon, "nmuon/I");
   ttree_->Branch("njet", &b_njet, "njet/I");
+
+  ttree_->Branch("reco_diMu_pt", &b_reco_diMu_pt, "reco_diMu_pt/F");
+  ttree_->Branch("reco_diMu_eta", &b_reco_diMu_eta, "reco_diMu_eta/F");
+  ttree_->Branch("reco_diMu_phi", &b_reco_diMu_phi, "reco_diMu_phi/F");
+  ttree_->Branch("reco_diMu_m", &b_reco_diMu_m, "reco_diMu_m/F");
+
+  ttree_->Branch("gen_diMu_pt", &b_gen_diMu_pt, "gen_diMu_pt/F");
+  ttree_->Branch("gen_diMu_eta", &b_gen_diMu_eta, "gen_diMu_eta/F");
+  ttree_->Branch("gen_diMu_phi", &b_gen_diMu_phi, "gen_diMu_phi/F");
+  ttree_->Branch("gen_diMu_m", &b_gen_diMu_m, "gen_diMu_m/F");
+  
   ttree_->Branch("MET", &b_MET, "MET/F");
   ttree_->Branch("channel", &b_channel, "channel/I");
   ttree_->Branch("step", &b_step, "step/I");
@@ -128,10 +142,6 @@ ZprimeAnalyser::ZprimeAnalyser(const edm::ParameterSet& iConfig)
   ttree_->Branch("mu2_eta", &b_lep2_eta, "mu2_eta/F");
   ttree_->Branch("mu2_phi", &b_lep2_phi, "mu2_phi/F");
 
-  ttree_->Branch("ll_pt", &b_ll_pt, "ll_pt/F");
-  ttree_->Branch("ll_eta", &b_ll_eta, "ll_eta/F");
-  ttree_->Branch("ll_phi", &b_ll_phi, "ll_phi/F");
-  ttree_->Branch("ll_m", &b_ll_m, "ll_m/F");
 
 }
 ZprimeAnalyser::~ZprimeAnalyser(){}
@@ -140,14 +150,13 @@ ZprimeAnalyser::~ZprimeAnalyser(){}
 void
 ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  b_njet = -1; b_step = 0; b_channel = -1;
+  b_nmuon = -1; b_njet = -1; b_step = 0; b_channel = -1;
   b_MET = -1;
   b_lep1_pt = -9; b_lep1_eta = -9; b_lep1_phi = -9;
   b_lep2_pt = -9; b_lep2_eta = -9; b_lep2_phi = -9;
-  b_ll_pt = -9; b_ll_eta = -9; b_ll_phi = -9; b_ll_m = -9;
+  b_reco_diMu_pt = -9; b_reco_diMu_eta = -9; b_reco_diMu_phi = -9; b_reco_diMu_m = -9;
+  b_gen_diMu_pt = -9; b_gen_diMu_eta = -9; b_gen_diMu_phi = -9; b_gen_diMu_m = -9;
   b_isMedium = 0; b_isTight = 0;
-
-  runOnMC_ = !iEvent.isRealData();
 
   edm::Handle<reco::VertexCollection> vertices;
   iEvent.getByToken(vtxToken_, vertices);
@@ -166,18 +175,18 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<edm::View<pat::MET> > mets;
   iEvent.getByToken(metToken_, mets);
 
-  edm::Handle<reco::GenParticleCollection> genParticles;
-
-  // if (runOnMC_){
-  //   iEvent.getByToken(mcLabel_,genParticles); 
-  //   for (const reco::GenParticle & g : *genParticles){
-  //     const reco::Candidate* w=0;
-  //     const reco::Candidate* wLast=0;    
-  //     const reco::Candidate* lep=0;
-  //     if (fabs(g.pdgId()) == 13){ 
-  //     }
-  //   }
-  // }
+  if (!iEvent.isRealData()){
+    edm::Handle<reco::GenParticleCollection> genParticles;
+    iEvent.getByToken(mcLabel_,genParticles);
+    for (const reco::GenParticle & g : *genParticles){
+      if (fabs(g.pdgId()) == 32 && fabs(g.daughter(0)->pdgId()) == 13 ){
+	b_gen_diMu_pt  = g.pt();
+	b_gen_diMu_m   = g.mass();
+	b_gen_diMu_eta = g.eta();
+	b_gen_diMu_phi = g.phi();
+      }
+    }
+  }
 
   b_nSiTrackerLayers = new vector<int>();
   b_nPixelHits = new vector<int>();
@@ -186,6 +195,10 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   b_relPtError = new vector<float>();
   b_dxy = new vector<float>();
   b_relTrkIso = new vector<float>();
+  b_ptBestTrack = new vector<float>();
+
+  b_nmuon = muons->size();
+  vector<pat::Muon> selectedmuons; selectedmuons.clear();
   
   for (auto mu : *muons) {    
     if (not mu.isGlobalMuon())
@@ -196,22 +209,30 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     b_nPixelHits->push_back(mu.globalTrack()->hitPattern().numberOfValidPixelHits());
     b_nMuonHits->push_back(mu.globalTrack()->hitPattern().numberOfMuonHits());
     b_nMatches->push_back(mu.numberOfChambers());
+
     float dxy = abs(mu.muonBestTrack()->dxy(pv.position()));
     if (dxy > 0.3) dxy = 0.3;
     b_dxy->push_back(dxy);
+    
     float relTrkIso = mu.isolationR03().sumPt / mu.innerTrack()->pt();
     if (relTrkIso > 0.3) relTrkIso = 0.3;
     b_relTrkIso->push_back(relTrkIso);
+
     if (mu.pt() > 100.){
       reco::TrackRef cktTrack = (muon::tevOptimized(mu)).first;
+      math::XYZTLorentzVectorD momentum = mu.p4() ;
+      momentum *= cktTrack->pt()/momentum.pt();
+      mu.setP4(momentum);// adding best TeV momentum
       float relPtError = cktTrack->ptError()/cktTrack->pt();
-    if (relPtError > 0.5) relPtError = 0.5;
+      if (relPtError > 0.5) relPtError = 0.5;
       b_relPtError->push_back(relPtError);
       if (cktTrack->ptError()/cktTrack->pt() > 0.3)
     	continue;
     }
+    const reco::TrackRef& tunePTrack = mu.muonBestTrack();
+    b_ptBestTrack->push_back(tunePTrack->pt());
     
-    if (mu.pt() <= 45.)
+    if (tunePTrack->pt() <= 45.)
       continue;
     if (abs(mu.muonBestTrack()->dxy(pv.position())) > 0.2)
       continue;
@@ -223,12 +244,24 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       continue;
     if (mu.globalTrack()->hitPattern().numberOfValidPixelHits() == 0)
       continue;
+    if (mu.globalTrack()->hitPattern().numberOfValidMuonHits() == 0)
+      continue;
     if (mu.numberOfMatchedStations() < 2)
       continue;
-    // selectedmuons.append(m)
-  
+    selectedmuons.push_back(mu);
   }
-  
+  if (selectedmuons.size() == 2){
+    if (selectedmuons[0].charge() * selectedmuons[1].charge() < 0){
+      TLorentzVector mu1, mu2, reco_diMu;
+      mu1.SetPtEtaPhiM(selectedmuons[0].pt(), selectedmuons[0].eta(), selectedmuons[0].phi(), 0.105658);
+      mu2.SetPtEtaPhiM(selectedmuons[0].pt(), selectedmuons[1].eta(), selectedmuons[1].phi(), 0.105658);
+      reco_diMu = mu1 + mu2;
+      b_reco_diMu_pt  = reco_diMu.Pt();
+      b_reco_diMu_m   = reco_diMu.M();
+      b_reco_diMu_eta = reco_diMu.Eta();
+      b_reco_diMu_phi = reco_diMu.Phi();
+    }
+  }
   ttree_->Fill();
 }
 void ZprimeAnalyser::beginJob(){}
