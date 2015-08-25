@@ -252,7 +252,9 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
   vector<pat::Electron> selectedelecs; selectedelecs.clear();  
   for (auto el : *elecs) {
-    cout << "el.electronID() "<< el.electronID("egmGsfElectronIDs:heepElectronID-HEEPV60") << endl;
+    //cout << "el.electronID() "<< el.electronID("egmGsfElectronIDs:heepElectronID-HEEPV60") << endl;
+    if (!el.electronID("heepElectronID-HEEPV50-CSA14-25ns") ) continue;
+    selectedelecs.push_back(el);
   }
 
   if (selectedmuons.size() == 2){
