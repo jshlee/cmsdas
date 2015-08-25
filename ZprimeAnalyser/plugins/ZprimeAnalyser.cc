@@ -198,8 +198,8 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   b_ptBestTrack = new vector<float>();
 
   b_nmuon = muons->size();
-  vector<pat::Muon> selectedmuons; selectedmuons.clear();
   
+  vector<pat::Muon> selectedmuons; selectedmuons.clear();  
   for (auto mu : *muons) {    
     if (not mu.isGlobalMuon())
       continue;
@@ -250,6 +250,11 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       continue;
     selectedmuons.push_back(mu);
   }
+  vector<pat::Electron> selectedelecs; selectedelecs.clear();  
+  for (auto el : *elecs) {
+    cout << "el.electronID() "<< el.electronID("egmGsfElectronIDs:heepElectronID-HEEPV60") << endl;
+  }
+
   if (selectedmuons.size() == 2){
     if (selectedmuons[0].charge() * selectedmuons[1].charge() < 0){
       TLorentzVector mu1, mu2, reco_diMu;
@@ -262,6 +267,7 @@ ZprimeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       b_reco_diMu_phi = reco_diMu.Phi();
     }
   }
+
   ttree_->Fill();
 }
 void ZprimeAnalyser::beginJob(){}
